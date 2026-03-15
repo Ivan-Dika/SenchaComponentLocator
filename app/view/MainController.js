@@ -12,17 +12,15 @@ Ext.define('CL.view.MainController', {
     init: function() {
         var me = this;
 
-        if (chrome.devtools) {
-            chrome.devtools.panels.elements.onSelectionChanged.addListener(me.getElementData.bind(me));
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'elementData') {
+                me.processElementData(event.data.data);
+            }
+        });
 
-            me.getElementData();
-        }
-    },
-
-    getElementData: function () {
-        var me = this;
-
-        chrome.devtools.inspectedWindow.eval("new (" + ComponentLocator.toString() + ")($0)", me.processElementData.bind(me));
+        window.parent.postMessage({
+            type: 'sandboxReady'
+        }, '*');
     },
 
     processElementData: function(result) {

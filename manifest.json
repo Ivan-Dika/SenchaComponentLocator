@@ -8,8 +8,12 @@
       "48": "icons/scl_48.png",
       "64": "icons/scl_64.png"
    },
-   "manifest_version": 2,
+   "manifest_version": 3,
    "name": "Sencha Component Locator",
    "version": "2.0.4",
-   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
+   "sandbox": {
+      "pages": [
+         "sandbox.html"
+      ]
+   }
 }
