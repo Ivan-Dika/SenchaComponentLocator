@@ -14,17 +14,24 @@ class ComponentLocator {
 
          [{
          locator: 'main button[itemId=logout]',
-         priority: 1
+         priority: 1,
+         category: 'Selected',
+         type: 'Component Query'
          }, {
          locator: 'button[itemId=logout]',
-         priority: 2
+         priority: 2,
+         category: 'Selected',
+         type: 'Component Query'
          }, {
          locator: 'button',
-         priority: 3
+         priority: 3,
+         category: 'Selected',
+         type: 'Component Type'
          }]
 
-         The `priority` can be any value from 1 to 4, with 1 being highest priority (most specific), so those
+         The `priority` can be any value from 0 to 4, with 0 being highest priority (class names), so those
          locators should be grouped first in the valid list of locators.
+         Items are also grouped by `category` — 'Selected' for the inspected component, 'Parent' for its parent.
          */
         me.locators = [];
 
@@ -92,10 +99,13 @@ class ComponentLocator {
             && !Ext.isFunction(locator));
     }
 
-    addLocator(xtypes, locator, container, priority, owningComponent) {
+    addLocator(xtypes, locator, container, priority, owningComponent, category, type) {
         var me = this,
             owningComponentLocator = null,
             containerEl, owningComponentEl, locatorTestString, queryResults, xtype;
+
+        category = category || 'Selected';
+        type = type || 'Component Query';
 
         if (container && container.xtype) {
             containerEl = container.el;
@@ -140,8 +150,246 @@ class ComponentLocator {
                 owningComponentLocator: owningComponentLocator,
                 priority: priority,
                 matches: queryResults.length,
-                xtypes: xtypes
+                xtypes: xtypes,
+                category: category,
+                type: type
             });
+        }
+    }
+
+    /**
+     * Generate all locators for a given component (cmp) and push them into me.locators.
+     * @param {Ext.Component} cmp          - The component to generate locators for.
+     * @param {HTMLElement}   element      - The originally-inspected DOM element (used for id checks).
+     * @param {String}        category     - 'Selected' or 'Parent' — used for grouping in the grid.
+     * @param {Object}        formattedLocators - Output object to attach configs/recordData for 'Selected' category.
+     */
+    generateForCmp(cmp, element, category, formattedLocators) {
+        var me = this,
+            container, container2, grid, list, tabpanel, panel, formpanel, config, configs, locator, locatorValue,
+            record, xtypes, locatorExtra, xtype;
+
+        grid = cmp.up('grid');
+        list = cmp.up('list');
+        tabpanel = cmp.up('tabpanel');
+        formpanel = cmp.up('formpanel');
+        panel = cmp.up('panel');
+
+        config = cmp.config || {};
+
+        // Find different types of container for the item, like grid/list, otherwise default to a containing component
+        if (grid) {
+            container = grid;
+        } else if (list) {
+            container = list;
+        } else if (formpanel) {
+            container = formpanel;
+        } else if (panel) {
+            container = panel;
+        } else if (tabpanel) {
+            container = tabpanel;
+        } else if (cmp.getField) {
+            container = cmp.getField();
+        } else {
+            container = cmp.up('component');
+        }
+
+        // Create an array of XTypes. (Widget doesn't have "getXTypes()")
+        if (cmp.getXTypes) {
+            xtypes = cmp.getXTypes().split('/');
+        } else {
+            xtypes = [ cmp.xtype ];
+        }
+
+        // Properly escape and handle XTypes with dots
+        xtype = cmp.xtype.replace('.', '\\\\.');
+
+        // --- Push raw class name entries at highest priority (priority 0) ---
+        if (cmp.$className) {
+            // Full class name: e.g. SIPAS.view.Sipas.filter.usermenu.Prop
+            me.locators.push({
+                locator: cmp.$className,
+                owningComponentLocator: null,
+                priority: 0,
+                matches: 1,
+                xtypes: xtypes,
+                category: category,
+                type: 'Raw Object Class'
+            });
+
+            // Short class name: strip namespace up to and including '.view.'
+            // e.g. SIPAS.view.Sipas.filter.usermenu.Prop -> Sipas.filter.usermenu.Prop
+            var viewParts = cmp.$className.split('.view.');
+            if (viewParts.length > 1) {
+                me.locators.push({
+                    locator: viewParts[1],
+                    owningComponentLocator: null,
+                    priority: 0,
+                    matches: 1,
+                    xtypes: xtypes,
+                    category: category,
+                    type: 'Short Class Name'
+                });
+            }
+        }
+
+        // --- Generate Component Query locators ---
+        for (let supportedConfig of me.supportedConfigs) {
+            try {
+                if (cmp[supportedConfig.getter]) {
+                    locatorValue = cmp[supportedConfig.getter]();
+                } else {
+                    locatorValue = config[supportedConfig.prop];
+                }
+            } catch(e) {
+                locatorValue = null;
+            }
+
+            // If the returned itemId or name matches the element's id, it's just an auto-generated id/name, so we should ignore it.
+            // And if the locator value is null or an empty string, ignore it.
+            if ((locatorValue == null || locatorValue == '')
+                || (supportedConfig.prop == 'itemId' && locatorValue == element.id)
+                || (supportedConfig.prop == 'name' && locatorValue.indexOf && locatorValue.indexOf(element.id) == 0)) {
+                continue;
+            } else if ((xtypes.indexOf('listitem') >= 0
+                || xtypes.indexOf('simplelistitem') >= 0
+                || xtypes.indexOf('gridrow') >= 0
+                || xtypes.indexOf('pivotgridrow') >= 0
+                || xtypes.indexOf('pivotgridcell') >= 0
+                || xtypes.indexOf('gridcell') >= 0
+                || xtypes.indexOf('booleancell') >= 0
+                || xtypes.indexOf('checkcell') >= 0
+                || xtypes.indexOf('datecell') >= 0
+                || xtypes.indexOf('gridcell') >= 0
+                || xtypes.indexOf('numbercell') >= 0
+                || xtypes.indexOf('rownumberercell') >= 0
+                || xtypes.indexOf('summarycell') >= 0
+                || xtypes.indexOf('textcell') >= 0
+                || xtypes.indexOf('treecell') >= 0
+                || xtypes.indexOf('widgetcell') >= 0)
+                && supportedConfig.prop == 'record' && cmp.getRecord) {
+                // In the Modern toolkit, ListItem and SimpleListItem are Components.
+
+                record = cmp.getRecord();
+
+                if (record) {
+                    var recordId = record.getId(),
+                        recordName = record.get('name'),
+                        recordText = record.get('text');
+
+                    locatorExtra = '';
+
+                    // This is a Modern grid cell, so get the dataIndex of the cell
+                    if ((xtypes.indexOf('gridcell') >= 0
+                        || xtypes.indexOf('pivotgridcell') >= 0
+                        || xtypes.indexOf('booleancell') >= 0
+                        || xtypes.indexOf('checkcell') >= 0
+                        || xtypes.indexOf('datecell') >= 0
+                        || xtypes.indexOf('gridcell') >= 0
+                        || xtypes.indexOf('numbercell') >= 0
+                        || xtypes.indexOf('rownumberercell') >= 0
+                        || xtypes.indexOf('summarycell') >= 0
+                        || xtypes.indexOf('textcell') >= 0
+                        || xtypes.indexOf('treecell') >= 0
+                        || xtypes.indexOf('widgetcell') >= 0)
+                        && cmp.dataIndex && cmp.dataIndex != '') {
+
+                        // Tag on the dataIndex, and also check the "_record" object exists - it appears it
+                        // may not exist on all cells, which could cause an exception due to referencing
+                        // the "id" when "_record" is null
+                        locatorExtra = '[dataIndex="' + cmp.dataIndex + '"]';
+                    }
+
+                    locatorExtra += '{_record}';
+
+                    if (typeof(recordId) == 'string') {
+                        locator = xtype + locatorExtra + '{_record.id=="' + recordId + '"}';
+                    } else {
+                        locator = xtype + locatorExtra + '{_record.id==' + recordId + '}';
+                    }
+
+                    me.addLocator(xtypes, locator, container, 1, container, category);
+                    me.addLocator(xtypes, locator, null, 2, container, category);
+
+                    if (recordName) {
+                        locator = xtype + locatorExtra + '{_record.data.name=="' + recordName.replace('"', '\\\\"').replace(',', '\\\\,') + '"}';
+                        me.addLocator(xtypes, locator, container, 1, container, category);
+                        me.addLocator(xtypes, locator, null, 2, container, category);
+                    }
+
+                    if (recordText) {
+                        locator = xtype + locatorExtra + '{_record.data.text=="' + recordText.replace('"', '\\\\"').replace(',', '\\\\,') + '"}';
+                        me.addLocator(xtypes, locator, container, 1, container, category);
+                        me.addLocator(xtypes, locator, null, 2, container, category);
+                    }
+
+                    if ((xtypes.indexOf('listitem') >= 0
+                        || xtypes.indexOf('simplelistitem') >= 0
+                        || xtypes.indexOf('gridrow') >= 0
+                        || xtypes.indexOf('pivotgridrow') >= 0)
+                        && cmp.$dataIndex) {
+
+                        locator = xtype + '[$dataIndex="' + cmp.$dataIndex + '"]';
+                        me.addLocator(xtypes, locator, container, 1, container, category);
+                        me.addLocator(xtypes, locator, null, 2, container, category);
+                    } else {
+                        container2 = cmp.parent;
+
+                        // `container2` is a grid row, which should have a numeric `$dataIndex`.
+                        if (container2 && container2.$dataIndex) {
+                            if (typeof(recordId) == 'string') {
+                                locator = container2.xtype + '[$dataIndex="' + container2.$dataIndex + '"] ' + xtype + '[dataIndex="' + cmp.dataIndex + '"]';
+                            } else {
+                                locator = container2.xtype + '[$dataIndex="' + container2.$dataIndex + '"] ' + xtype + '[dataIndex="' + cmp.dataIndex + '"]';
+                            }
+
+                            me.addLocator(xtypes, locator, container, 1, container, category);
+                            me.addLocator(xtypes, locator, null, 2, container, category);
+                        }
+                    }
+                }
+            } else if (supportedConfig.prop == 'itemId' && me.isValidLocatorValue(locatorValue)) {
+                locator = xtype + '#' + locatorValue;
+
+                me.addLocator(xtypes, locator, container, 1, container, category);
+                me.addLocator(xtypes, locator, null, 2, container, category);
+            } else if (supportedConfig.prop != 'record' && me.isValidLocatorValue(locatorValue)) {
+                locator = xtype + '[' + supportedConfig.prop + '="' + locatorValue.replace('"', '\\\\"').replace(',', '\\\\,') + '"]';
+
+                me.addLocator(xtypes, locator, container, 1, container, category);
+                me.addLocator(xtypes, locator, null, 2, container, category);
+            }
+        }
+
+        me.addLocator(xtypes, xtype, container, 3, container, category, 'Component Type');
+        me.addLocator(xtypes, xtype, null, 4, container, category, 'Component Type');
+
+        // Only attach configs and recordData for the directly-selected component
+        if (category === 'Selected') {
+            configs = [];
+
+            for (var key in config) {
+                if (config.hasOwnProperty(key)) {
+                    var value = config[key];
+
+                    if (value != null
+                        && typeof value != 'undefined'
+                        && !Ext.isObject(value)
+                        && !Ext.isArray(value)
+                        && !Ext.isFunction(value)) {
+                        configs.push({
+                            config: key,
+                            value: value.toString()
+                        });
+                    }
+                }
+            }
+
+            formattedLocators['configs'] = configs;
+
+            if (record) {
+                formattedLocators['recordData'] = record.data;
+            }
         }
     }
 
@@ -149,8 +397,7 @@ class ComponentLocator {
         var me = this,
             element = me.element,
             formattedLocators = {},
-            cmp, container, container2, grid, list, tabpanel, panel, formpanel, config, configs, locator, locatorValue,
-            record, xtypes, locatorExtra, xtype;
+            cmp, parentCmp;
 
         if (!me.isSupportedApp()) {
             return {
@@ -181,200 +428,24 @@ class ComponentLocator {
                 };
             }
 
-            grid = cmp.up('grid');
-            list = cmp.up('list');
-            tabpanel = cmp.up('tabpanel');
-            formpanel = cmp.up('formpanel');
-            panel = cmp.up('panel');
+            // Generate locators for the selected component
+            me.generateForCmp(cmp, element, 'Selected', formattedLocators);
 
-            config = cmp.config || {};
-
-            // Find different types of container for the item, like grid/list, otherwise default to a containing component
-            if (grid) {
-                container = grid;
-            } else if (list) {
-                container = list;
-            } else if (formpanel) {
-                container = formpanel;
-            } else if (panel) {
-                container = panel;
-            } else if (tabpanel) {
-                container = tabpanel;
-            } else if (cmp.getField) {
-                container = cmp.getField();
-            } else {
-                container = cmp.up('component');
-            }
-            
-            // Create an array of XTypes. (Widget doesn't have "getXTypes()")
-            if (cmp.getXTypes) {
-                xtypes = cmp.getXTypes().split('/');
-            } else {
-                xtypes = [ cmp.xtype ];
+            // Generate locators for the parent component (if any), but only if it's
+            // genuinely a different component (not cmp itself, which can happen when
+            // cmp.up('component') resolves back to the same element).
+            parentCmp = cmp.up && cmp.up('component');
+            if (parentCmp && parentCmp !== cmp && parentCmp.id !== cmp.id) {
+                me.generateForCmp(parentCmp, element, 'Parent', formattedLocators);
             }
 
-            // Properly escape and handle XTypes with dots
-            xtype = cmp.xtype.replace('.', '\\\\.');
-
-            for (let supportedConfig of me.supportedConfigs) {
-                try {
-                    if (cmp[supportedConfig.getter]) {
-                        locatorValue = cmp[supportedConfig.getter]();
-                    } else {
-                        locatorValue = config[supportedConfig.prop];
-                    }
-                } catch(e) {
-                    locatorValue = null;
+            // Sort: first by category ('Selected' before 'Parent'), then by priority within each group
+            me.locators.sort(function(a, b) {
+                if (a.category !== b.category) {
+                    return a.category === 'Selected' ? -1 : 1;
                 }
-
-                // If the returned itemId or name matches the element's id, it's just an auto-generated id/name, so we should ignore it.
-                // And if the locator value is null or an empty string, ignore it.
-                if ((locatorValue == null || locatorValue == '')
-                    || (supportedConfig.prop == 'itemId' && locatorValue == element.id)
-                    || (supportedConfig.prop == 'name' && locatorValue.indexOf && locatorValue.indexOf(element.id) == 0)) {
-                    continue;
-                } else if ((xtypes.indexOf('listitem') >= 0
-                    || xtypes.indexOf('simplelistitem') >= 0
-                    || xtypes.indexOf('gridrow') >= 0
-                    || xtypes.indexOf('pivotgridrow') >= 0
-                    || xtypes.indexOf('pivotgridcell') >= 0
-                    || xtypes.indexOf('gridcell') >= 0
-                    || xtypes.indexOf('booleancell') >= 0
-                    || xtypes.indexOf('checkcell') >= 0
-                    || xtypes.indexOf('datecell') >= 0
-                    || xtypes.indexOf('gridcell') >= 0
-                    || xtypes.indexOf('numbercell') >= 0
-                    || xtypes.indexOf('rownumberercell') >= 0
-                    || xtypes.indexOf('summarycell') >= 0
-                    || xtypes.indexOf('textcell') >= 0
-                    || xtypes.indexOf('treecell') >= 0
-                    || xtypes.indexOf('widgetcell') >= 0)
-                    && supportedConfig.prop == 'record' && cmp.getRecord) {
-                    // In the Modern toolkit, ListItem and SimpleListItem are Components.
-
-                    record = cmp.getRecord();
-
-                    if (record) {
-                        var recordId = record.getId(),
-                            recordName = record.get('name'),
-                            recordText = record.get('text');
-
-                        locatorExtra = '';
-
-                        // This is a Modern grid cell, so get the dataIndex of the cell
-                        if ((xtypes.indexOf('gridcell') >= 0
-                            || xtypes.indexOf('pivotgridcell') >= 0
-                            || xtypes.indexOf('booleancell') >= 0
-                            || xtypes.indexOf('checkcell') >= 0
-                            || xtypes.indexOf('datecell') >= 0
-                            || xtypes.indexOf('gridcell') >= 0
-                            || xtypes.indexOf('numbercell') >= 0
-                            || xtypes.indexOf('rownumberercell') >= 0
-                            || xtypes.indexOf('summarycell') >= 0
-                            || xtypes.indexOf('textcell') >= 0
-                            || xtypes.indexOf('treecell') >= 0
-                            || xtypes.indexOf('widgetcell') >= 0)
-                            && cmp.dataIndex && cmp.dataIndex != '') {
-
-                            // Tag on the dataIndex, and also check the "_record" object exists - it appears it
-                            // may not exist on all cells, which could cause an exception due to referencing
-                            // the "id" when "_record" is null
-                            locatorExtra = '[dataIndex="' + cmp.dataIndex + '"]';
-                        }
-
-                        locatorExtra += '{_record}';
-
-                        if (typeof(recordId) == 'string') {
-                            locator = xtype + locatorExtra + '{_record.id=="' + recordId + '"}';
-                        } else {
-                            locator = xtype + locatorExtra + '{_record.id==' + recordId + '}';
-                        }
-
-                        me.addLocator(xtypes, locator, container, 1, container);
-                        me.addLocator(xtypes, locator, null, 2, container);
-
-                        if (recordName) {
-                            locator = xtype + locatorExtra + '{_record.data.name=="' + recordName.replace('"', '\\\\"').replace(',', '\\\\,') + '"}';
-                            me.addLocator(xtypes, locator, container, 1, container);
-                            me.addLocator(xtypes, locator, null, 2, container);
-                        }
-
-                        if (recordText) {
-                            locator = xtype + locatorExtra + '{_record.data.text=="' + recordText.replace('"', '\\\\"').replace(',', '\\\\,') + '"}';
-                            me.addLocator(xtypes, locator, container, 1, container);
-                            me.addLocator(xtypes, locator, null, 2, container);
-                        }
-
-                        if ((xtypes.indexOf('listitem') >= 0
-                            || xtypes.indexOf('simplelistitem') >= 0
-                            || xtypes.indexOf('gridrow') >= 0
-                            || xtypes.indexOf('pivotgridrow') >= 0)
-                            && cmp.$dataIndex) {
-
-                            locator = xtype + '[$dataIndex="' + cmp.$dataIndex + '"]';
-                            me.addLocator(xtypes, locator, container, 1, container);
-                            me.addLocator(xtypes, locator, null, 2, container);
-                        } else {
-                            container2 = cmp.parent;
-
-                            // `container2` is a grid row, which should have a numeric `$dataIndex`.
-                            if (container2 && container2.$dataIndex) {
-                                if (typeof(recordId) == 'string') {
-                                    locator = container2.xtype + '[$dataIndex="' + container2.$dataIndex + '"] ' + xtype + '[dataIndex="' + cmp.dataIndex + '"]';
-                                } else {
-                                    locator = container2.xtype + '[$dataIndex="' + container2.$dataIndex + '"] ' + xtype + '[dataIndex="' + cmp.dataIndex + '"]';
-                                }
-
-                                me.addLocator(xtypes, locator, container, 1, container);
-                                me.addLocator(xtypes, locator, null, 2, container);
-                            }
-                        }
-                    }
-                } else if (supportedConfig.prop == 'itemId' && me.isValidLocatorValue(locatorValue)) {
-                    locator = xtype + '#' + locatorValue;
-
-                    me.addLocator(xtypes, locator, container, 1, container);
-                    me.addLocator(xtypes, locator, null, 2, container);
-                } else if (supportedConfig.prop != 'record' && me.isValidLocatorValue(locatorValue)) {
-                    locator = xtype + '[' + supportedConfig.prop + '="' + locatorValue.replace('"', '\\\\"').replace(',', '\\\\,') + '"]';
-
-                    me.addLocator(xtypes, locator, container, 1, container);
-                    me.addLocator(xtypes, locator, null, 2, container);
-                }
-            }
-
-            me.addLocator(xtypes, xtype, container, 3, container);
-            me.addLocator(xtypes, xtype, null, 4, container);
-
-            configs = [];
-
-            for (var key in config) {
-                if (config.hasOwnProperty(key)) {
-                    var value = config[key];
-
-                    if (value != null
-                        && typeof value != 'undefined'
-                        && !Ext.isObject(value)
-                        && !Ext.isArray(value)
-                        && !Ext.isFunction(value)) {
-                        configs.push({
-                            config: key,
-                            value: value.toString()
-                        });
-                    }
-                }
-            }
-
-            // Let user see the list of configured `config` properties
-            formattedLocators['configs'] = configs;
-
-            // If this component has an associated record, show the record's `data` object to the user
-            if (record) {
-                formattedLocators['recordData'] = record.data;
-            }
-
-            // Sort the locators in order of priority, with most specific first.
-            me.locators.sort((locatorA, locatorB) => locatorA.priority - locatorB.priority);
+                return a.priority - b.priority;
+            });
 
             formattedLocators['locators'] = me.locators;
 

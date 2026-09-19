@@ -14,6 +14,11 @@ Ext.define('CL.view.Locators', {
             }
         }
     },
+    features: [{
+        ftype: 'grouping',
+        groupHeaderTpl: '{name}',
+        collapsible: false
+    }],
 
     columns: [{
         xtype: 'widgetcolumn',
@@ -39,6 +44,13 @@ Ext.define('CL.view.Locators', {
             metaData.tdStyle = 'font-family: Courier;';
             return Ext.String.htmlEncode(value);
         }
+    }, {
+        width: 150,
+        text: 'Type',
+        dataIndex: 'type',
+        sortable: false,
+        menuDisabled: true,
+        draggable: false
     }, {
         width: 125,
         text: 'Matches',

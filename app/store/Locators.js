@@ -3,5 +3,7 @@ Ext.define('CL.data.LocatorStore', {
 
     storeId: 'locatorStore',
 
-    fields: ['locator', 'matches']
+    fields: ['locator', 'matches', 'type', 'category'],
+    
+    groupField: 'category'
 });

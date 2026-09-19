@@ -70,7 +70,12 @@ Ext.define('CL.view.MainController', {
             configStore.loadData(result.configs);
 
             if (locatorStore.count() > 0) {
-                locatorCombo.setValue(locatorStore.getAt(0).getId());
+                // Skip class-name entries (Raw Object Class / Short Class Name) for the API example combo
+                var firstQueryLocator = locatorStore.findRecord('type', 'Component Query');
+                if (!firstQueryLocator) {
+                    firstQueryLocator = locatorStore.getAt(0);
+                }
+                locatorCombo.setValue(firstQueryLocator.getId());
             }
         } else {
             view.setActiveItem(0);

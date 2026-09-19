@@ -65,6 +65,28 @@
     color: var(--cl-text) !important;
 }
 
+/* Grid grouping headers — tr.x-group-header (the row) + td.x-group-hd-container (the cell) */
+.theme-dark .x-group-header,
+.theme-light .x-group-header {
+    background-color: var(--cl-secondary-bg) !important;
+    background: var(--cl-secondary-bg) !important;
+}
+
+.theme-dark .x-group-hd-container,
+.theme-light .x-group-hd-container {
+    background-color: var(--cl-secondary-bg) !important;
+    background: var(--cl-secondary-bg) !important;
+    border-color: var(--cl-line) !important;
+}
+
+.theme-dark .x-grid-group-hd,
+.theme-light .x-grid-group-hd {
+    color: var(--cl-text) !important;
+    font-weight: bold;
+    background-color: var(--cl-secondary-bg) !important;
+    background: var(--cl-secondary-bg) !important;
+}
+
 /* Tabs */
 .theme-dark .x-tab-bar,
 .theme-light .x-tab-bar {
