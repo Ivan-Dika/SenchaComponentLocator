@@ -1,3 +1,162 @@
+:root {
+    --cl-main-bg: #FFFFFF;
+    --cl-secondary-bg: #ECECEC;
+    --cl-hover-bg: #E0E0E0;
+    --cl-line: #E3E3E3;
+    --cl-tab-line: #0B57D0;
+    --cl-text: #000000;
+}
+
+.theme-dark {
+    --cl-main-bg: #282828;
+    --cl-secondary-bg: #3C3C3C;
+    --cl-hover-bg: #4F4F4F;
+    --cl-line: #5E5E5E;
+    --cl-tab-line: #A8C7FA;
+    --cl-text: #E3E3E3;
+}
+
+.theme-light {
+    --cl-main-bg: #FFFFFF;
+    --cl-secondary-bg: #ECECEC;
+    --cl-hover-bg: #E0E0E0;
+    --cl-line: #E3E3E3;
+    --cl-tab-line: #0B57D0;
+    --cl-text: #000000;
+}
+
+/* Base Overrides */
+.theme-dark, .theme-light {
+    background-color: var(--cl-main-bg) !important;
+    color: var(--cl-text);
+}
+
+.theme-dark a, .theme-dark a:visited {
+    color: #A8C7FA;
+}
+
+.theme-light a, .theme-light a:visited {
+    color: #0B57D0;
+}
+
+/* ExtJS Overrides for Themes */
+.theme-dark .x-panel-body, 
+.theme-light .x-panel-body,
+.theme-dark .x-grid-item,
+.theme-light .x-grid-item,
+.theme-dark .x-grid-canvas,
+.theme-light .x-grid-canvas {
+    background-color: var(--cl-main-bg) !important;
+    color: var(--cl-text) !important;
+    border-color: var(--cl-line) !important;
+}
+
+.theme-dark .x-grid-row-alt {
+    background-color: var(--cl-secondary-bg) !important;
+}
+
+.theme-dark .x-grid-item-over {
+    background-color: var(--cl-hover-bg) !important;
+}
+
+.theme-dark .x-grid-cell,
+.theme-light .x-grid-cell {
+    border-color: var(--cl-line) !important;
+    color: var(--cl-text) !important;
+}
+
+/* Tabs */
+.theme-dark .x-tab-bar,
+.theme-light .x-tab-bar {
+    background-color: var(--cl-secondary-bg) !important;
+}
+
+.theme-dark .x-tab,
+.theme-light .x-tab {
+    background-color: var(--cl-secondary-bg) !important;
+    border-bottom: 2px solid transparent !important;
+}
+
+.theme-dark .x-tab-active,
+.theme-light .x-tab-active {
+    background-color: var(--cl-main-bg) !important;
+    border-bottom: 2px solid var(--cl-tab-line) !important;
+}
+
+.theme-dark .x-tab-inner,
+.theme-light .x-tab-inner {
+    color: var(--cl-text) !important;
+}
+
+/* Headers */
+.theme-dark h2, .theme-light h2 {
+    background-color: var(--cl-secondary-bg) !important;
+    color: var(--cl-text) !important;
+}
+
+.theme-dark h3, .theme-light h3 {
+    background-color: var(--cl-line) !important;
+    color: var(--cl-text) !important;
+}
+
+/* Toolbars & Form Fields */
+.theme-dark .x-toolbar,
+.theme-light .x-toolbar {
+    background-color: var(--cl-secondary-bg) !important;
+    border-color: var(--cl-line) !important;
+}
+
+.theme-dark .x-form-item-label,
+.theme-light .x-form-item-label {
+    color: var(--cl-text) !important;
+}
+
+.theme-dark .x-form-text-default {
+    background-color: var(--cl-main-bg) !important;
+    color: var(--cl-text) !important;
+    border-color: var(--cl-line) !important;
+}
+
+.theme-dark .x-form-trigger-default {
+    background-color: var(--cl-secondary-bg) !important;
+    border-color: var(--cl-line) !important;
+}
+
+/* Buttons */
+.theme-dark .x-btn-default-toolbar-small,
+.theme-light .x-btn-default-toolbar-small {
+    background-color: var(--cl-secondary-bg) !important;
+    border-color: var(--cl-line) !important;
+}
+
+.theme-dark .x-btn-inner-default-toolbar-small,
+.theme-light .x-btn-inner-default-toolbar-small {
+    color: var(--cl-text) !important;
+}
+
+.theme-dark .x-btn-pressed.x-btn-default-toolbar-small,
+.theme-light .x-btn-pressed.x-btn-default-toolbar-small {
+    background-color: var(--cl-tab-line) !important;
+    border-color: var(--cl-tab-line) !important;
+}
+
+.theme-dark .x-btn-pressed .x-btn-inner-default-toolbar-small,
+.theme-light .x-btn-pressed .x-btn-inner-default-toolbar-small {
+    color: #FFFFFF !important;
+}
+
+/* Code Blocks */
+.theme-dark pre, 
+.theme-dark code {
+    background-color: #1E1E1E !important;
+    color: #D4D4D4 !important;
+}
+
+.theme-dark .hljs {
+    background: #1E1E1E !important;
+    color: #D4D4D4 !important;
+}
+
 .statusMessage .x-autocontainer-innerCt {
     vertical-align: middle;
     text-align: center;
@@ -11,20 +170,17 @@ a, a:visited {
 
 h2, h3 {
     padding: 5px;
-}
-
-h2 {
     font-size: 1.4em;
-    background-color: #C5CAE9;
 }
 
 h3 {
     font-size: 1.3em;
-    background-color: #E8EAF6;
 }
 
 pre {
     max-width: 100%;
     overflow: scroll;
     padding-right: 45px;
+    padding: 10px;
+    border-radius: 4px;
 }

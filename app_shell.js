@@ -30,5 +30,23 @@ window.addEventListener('message', function(event) {
                 data: activeComponentLocatorData
             }, '*');
         }
+
+        syncTheme();
     }
 });
+
+if (chrome.devtools && chrome.devtools.panels && chrome.devtools.panels.onThemeChanged) {
+    chrome.devtools.panels.onThemeChanged.addListener(syncTheme);
+}
+
+function syncTheme() {
+    if (chrome.devtools && chrome.devtools.panels) {
+        var devtoolsTheme = chrome.devtools.panels.themeName;
+        var theme = devtoolsTheme === 'dark' ? 'dark' : 'light';
+        
+        sandbox.contentWindow.postMessage({
+            type: 'setTheme',
+            value: theme
+        }, '*');
+    }
+}

@@ -1,5 +1,31 @@
 <html>
 <head>
+    <script>
+        (function() {
+            var mockStorage = function() {
+                var storage = {};
+                return {
+                    getItem: function(key) { return storage[key] || null; },
+                    setItem: function(key, value) { storage[key] = value.toString(); },
+                    removeItem: function(key) { delete storage[key]; },
+                    clear: function() { storage = {}; },
+                    key: function(i) { var keys = Object.keys(storage); return keys[i] || null; },
+                    get length() { return Object.keys(storage).length; }
+                };
+            };
+            try {
+                window.localStorage;
+            } catch (e) {
+                Object.defineProperty(window, 'localStorage', { value: mockStorage(), writable: false });
+            }
+            try {
+                window.sessionStorage;
+            } catch (e) {
+                Object.defineProperty(window, 'sessionStorage', { value: mockStorage(), writable: false });
+            }
+        })();
+    </script>
+
     <!-- Highlight.js -->
     <link rel="stylesheet" href="libs/highlight/styles/default.css">
     <script src="libs/highlight/highlight.pack.js"></script>

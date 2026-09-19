@@ -12,15 +12,29 @@ Ext.define('CL.view.MainController', {
     init: function() {
         var me = this;
 
+        if (Ext.state && Ext.state.Manager) {
+            Ext.state.Manager.setProvider(Ext.create('Ext.state.Provider'));
+        }
+
         window.addEventListener('message', function(event) {
             if (event.data && event.data.type === 'elementData') {
                 me.processElementData(event.data.data);
+            } else if (event.data && event.data.type === 'setTheme') {
+                me.applyTheme(event.data.value);
             }
         });
 
         window.parent.postMessage({
             type: 'sandboxReady'
         }, '*');
+    },
+
+    applyTheme: function(theme) {
+        var body = Ext.getBody();
+        body.removeCls(['theme-dark', 'theme-light']);
+        if (theme === 'dark' || theme === 'light') {
+            body.addCls('theme-' + theme);
+        }
     },
 
     processElementData: function(result) {
